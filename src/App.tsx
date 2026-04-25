@@ -1,14 +1,19 @@
-import { Route, Routes, Navigate } from 'react-router-dom'
-import Login from './pages/login.tsx'
+import { Route, Routes} from 'react-router-dom'
+import Login from './pages/login'
+import IndexPage from './pages/IndexPage'
 import './App.css'
+import LandhumidChart from './pages/landhumidChart'
+import TempChart from './pages/tempChart'
 
 function App() {
    return (
     <Routes>
-      <Route path="/" element={<Navigate to="/login" replace />} />
+      {/* <Route path="/" element={<Navigate to="/login" replace />} /> */}
       <Route path="/login" element={<Login />} />
-      {/* <Route path="/humidChart" element={<HumidChart />} />
-      <Route path="/tempChart" element={<TempChart />} /> */}
+      <Route path="/" element={<IndexPage />} />
+      
+      <Route path="/landhumidChart" element={<LandhumidChart/>} />
+      <Route path="/tempChart" element={<TempChart />} />
     </Routes>
    )
 }
