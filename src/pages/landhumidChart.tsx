@@ -7,12 +7,14 @@ import {
   PointElement,
   LineElement,
   Tooltip,
-  Legend
+  Legend,
+  Filler        // ← thêm dòng này
+
 } 
 from 'chart.js' 
 import './chart.css'
 
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend)
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend, Filler)
 
 function LandhumidChart() {
 

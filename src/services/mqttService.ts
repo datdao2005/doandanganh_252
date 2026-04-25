@@ -1,10 +1,11 @@
 import mqtt from 'mqtt';
+import dotenv from 'dotenv'
+dotenv.config()
 
-// Lấy thông tin từ .env để GitHub không chặn được
-const USERNAME = import.meta.env.VITE_AIO_USERNAME || 'KenElem';
-const AIO_KEY = import.meta.env.VITE_AIO_KEY; 
+const USERNAME = "datlmaolmao";
+const AIO_KEY ="aio_vUop27vNVuPHKgXwUl4xBwUSav3z"; 
 
-export const setupMQTT = (onTrigger: () => void) => {
+export const setupMQTT = () => {
   if (!AIO_KEY) {
     console.error("Thiếu AIO Key! Hãy kiểm tra file .env");
     return null;
@@ -17,16 +18,29 @@ export const setupMQTT = (onTrigger: () => void) => {
 
   client.on('connect', () => {
     console.log("Đã kết nối MQTT Adafruit thành công!");
-    // Subscribe vào feed trigger
-    client.subscribe(`${USERNAME}/feeds/trigger-feed`);
+    client.subscribe(`${USERNAME}/feeds/soil-humidity`);
   });
 
-  client.on('message', (topic, message) => {
-    if (message.toString() === '1') {
-      console.log("Nhận lệnh Trigger từ thiết bị ngoại vi!");
-      onTrigger(); // Chạy hàm kích hoạt camera
+  client.on('message', async (topic, message) => {
+    const value = parseFloat(message.toString())
+    if (isNaN(value)) return
+
+    console.log(`Nhận từ ${topic}: ${value}`)
+
+    try {
+      await fetch('http://localhost:3000/api/landSensor', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ humidity: value })
+      })
+      console.log(`Đã push humidity ${value}% vào dashboard`)
+    } catch (err) {
+      console.error('Lỗi push data:', err)
     }
   });
+
+  client.on('error', (err) => console.error('MQTT error:', err))
+  client.on('disconnect', () => console.log('Mất kết nối MQTT'))
 
   return client;
 };

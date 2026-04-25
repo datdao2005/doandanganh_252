@@ -37,7 +37,7 @@ private getHeaders() {
 
   async getTemperature() {
     const res = await fetch(
-      `${this.BASE_URL}/temparature/data` ,{
+      `${this.BASE_URL}/temperature/data` ,{
         headers: this.getHeaders()
       }
     );
@@ -46,42 +46,42 @@ private getHeaders() {
     return data;
   }
 
-  async getTriggerValue() {
-    // FIX: Thêm headers để Adafruit cho phép đọc dữ liệu
-    const res = await fetch(`${this.BASE_URL}/trigger-cam/data/last`, {
-      headers: this.getHeaders()
-    });
-    const data = await res.json();
-    return data.value; 
-  }
+  // async getTriggerValue() {
+  //   // FIX: Thêm headers để Adafruit cho phép đọc dữ liệu
+  //   const res = await fetch(`${this.BASE_URL}/trigger-cam/data/last`, {
+  //     headers: this.getHeaders()
+  //   });
+  //   const data = await res.json();
+  //   return data.value; 
+  // }
 
-  async sendResult(resultValue: number | string) {
-    // FIX: Sử dụng đúng endpoint /data
-    const url = `${this.BASE_URL}/acquaintance/data`;
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: this.getHeaders(),
-      body: JSON.stringify({ value: resultValue.toString() })
-    });
-    return await res.json();
-  }
+  // async sendResult(resultValue: number | string) {
+  //   // FIX: Sử dụng đúng endpoint /data
+  //   const url = `${this.BASE_URL}/acquaintance/data`;
+  //   const res = await fetch(url, {
+  //     method: 'POST',
+  //     headers: this.getHeaders(),
+  //     body: JSON.stringify({ value: resultValue.toString() })
+  //   });
+  //   return await res.json();
+  // }
 
   // Trong file src/services/adaFruitservice.ts
 
-async sendTriggerValue(value: number) {
-    // FIX 3: Sử dụng USERNAME và AIO_KEY của Class thay vì process.env bị lỗi
-    try {
-      const response = await fetch(`${this.BASE_URL}/trigger-cam/data`, {
-        method: 'POST',
-        headers: this.getHeaders(),
-        body: JSON.stringify({ value: value.toString() }),
-      });
+// async sendTriggerValue(value: number) {
+//     // FIX 3: Sử dụng USERNAME và AIO_KEY của Class thay vì process.env bị lỗi
+//     try {
+//       const response = await fetch(`${this.BASE_URL}/trigger-cam/data`, {
+//         method: 'POST',
+//         headers: this.getHeaders(),
+//         body: JSON.stringify({ value: value.toString() }),
+//       });
 
-      if (!response.ok) console.error("Lỗi khi reset trigger trên Adafruit");
-    } catch (error) {
-      console.error("Network error khi gọi Adafruit:", error);
-    }
-  }
+//       if (!response.ok) console.error("Lỗi khi reset trigger trên Adafruit");
+//     } catch (error) {
+//       console.error("Network error khi gọi Adafruit:", error);
+//     }
+//   }
 }
 
 export default Adafruit;

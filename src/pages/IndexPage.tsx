@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getCurrentTime } from '../utils/time'
+import { getCurrentTime } from '../utils/time.ts'
 
 const HUMIDITY_THRESHOLD = 30  // cảnh báo khi độ ẩm dưới 30%
 
 function IndexPage() {
-  const API = '/api'
+  const API = 'http://localhost:3000/api'
   const navigate = useNavigate()
 
   const [humidity, setHumidity] = useState<number | null>(null)
