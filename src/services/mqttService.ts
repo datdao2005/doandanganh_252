@@ -2,14 +2,9 @@ import mqtt from 'mqtt';
 import dotenv from 'dotenv'
 dotenv.config()
 
-<<<<<<< HEAD
-const USERNAME = process.env.AIO_USERNAME
-const AIO_KEY = process.env.AIO_KEY
+const USERNAME = process.env.AIO_USERNAME;
+const AIO_KEY =process.env.AIO_KEY; 
 
-=======
-const USERNAME = process.env.VITE_AIO_USERNAME;
-const AIO_KEY =process.env.VITE_AIO_KEY; 
->>>>>>> 8426f81 (update files)
 export const setupMQTT = () => {
   if (!AIO_KEY) {
     console.error("Thiếu AIO Key! Hãy kiểm tra file .env");
