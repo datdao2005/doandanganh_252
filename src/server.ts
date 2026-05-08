@@ -7,6 +7,7 @@ import login from './routes/login.ts';
 import sensorRoute from './routes/sensorRoute.ts'
 import ledScreen from './routes/ledScreen.ts'
 import landSensor from './routes/landSensor.ts'
+import tempSensor from './routes/tempSensor.ts'
 import pumper from './routes/pumper.ts'
 import {setupMQTT}  from './services/mqttService.ts'
 import cors from 'cors';
@@ -20,6 +21,7 @@ app.use('/api', sensorRoute);
 app.use('/api', login);
 app.use('/api', ledScreen);
 app.use('/api', landSensor);
+app.use('/api', tempSensor);
 app.use('/api', pumper);
 app.get('/', (req: Request, res: Response) => {
     res.send("Hello IOT project!");
