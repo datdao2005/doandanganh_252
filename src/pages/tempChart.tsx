@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { Line } from 'react-chartjs-2'
 import {
   Chart as ChartJS,
@@ -14,22 +14,40 @@ import './chart.css'
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend)
 
 function TempChart() {
+  const API = 'http://localhost:3000/api'
+  const [data, setData] = useState<{ time: string; temperature: number }[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  // mock data
-  const dataMock = [
-    { time: '10:00', temperature: 24 },
-    { time: '10:05', temperature: 25 },
-    { time: '10:10', temperature: 26 },
-    { time: '10:15', temperature: 24.5 },
-    { time: '10:20', temperature: 25.5 },
-  ]
+  const fetchData = async () => {
+    try {
+      const res = await fetch(`${API}/tempSensor`)
+      if (!res.ok) throw new Error('Lỗi kết nối server')
+      const json = await res.json()
+      setData(json.history || [])
+      setError(null)
+    } catch (err) {
+      setError('Không thể lấy dữ liệu cảm biến')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchData()
+    const interval = setInterval(fetchData, 5000)  // refresh mỗi 5 giây
+    return () => clearInterval(interval)
+  }, [])
+
+  if (loading) return <div>Loading...</div>
+  if (error) return <div>Error: {error}</div>
 
   const chartData = {
-    labels: dataMock.map(item => item.time),
+    labels: data.map(item => item.time),
     datasets: [
       {
         label: 'Temperature (°C)',
-        data: dataMock.map(item => item.temperature),
+        data: data.map(item => item.temperature),
         borderColor: '#ff8b3d',
         backgroundColor: 'rgba(255, 139, 61, 0.1)',
         borderWidth: 2.5,

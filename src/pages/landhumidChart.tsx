@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { Line } from 'react-chartjs-2'
 import {
   Chart as ChartJS,
@@ -17,25 +17,40 @@ import './chart.css'
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend, Filler)
 
 function LandhumidChart() {
+  const API = 'http://localhost:3000/api'
+  const [data, setData] = useState<{ time: string; humidity: number }[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  // mock data
-  const dataMock = [
-    { time: '10:00', humidity: 60 },
-    { time: '10:05', humidity: 62 },
-    { time: '10:10', humidity: 58 },
-    { time: '10:15', humidity: 65 },
-    { time: '10:20', humidity: 63 },
-    { time: '10:25', humidity: 61 },
-    { time: '10:30', humidity: 64 },
-    { time: '10:35', humidity: 59 },
-  ]
+  const fetchData = async () => {
+    try {
+      const res = await fetch(`${API}/landSensor`)
+      if (!res.ok) throw new Error('Lỗi kết nối server')
+      const json = await res.json()
+      setData(json.history || [])
+      setError(null)
+    } catch (err) {
+      setError('Không thể lấy dữ liệu cảm biến')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    fetchData()
+    const interval = setInterval(fetchData, 5000)  // refresh mỗi 5 giây
+    return () => clearInterval(interval)
+  }, [])
+
+  if (loading) return <div>Loading...</div>
+  if (error) return <div>Error: {error}</div>
 
   const chartData = {
-    labels: dataMock.map(item => item.time),
+    labels: data.map(item => item.time),
     datasets: [
       {
         label: 'Humidity (%)',
-        data: dataMock.map(item => item.humidity),
+        data: data.map(item => item.humidity),
         borderColor: '#0f8ca0',
         backgroundColor: 'rgba(15, 140, 160, 0.1)',
         borderWidth: 2.5,
