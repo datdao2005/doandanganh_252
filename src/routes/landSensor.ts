@@ -30,7 +30,7 @@ router.post('/landSensor', (req: Request, res: Response) => {
   sensorHistory.push(entry)
   if (sensorHistory.length > 20) sensorHistory = sensorHistory.slice(-20)
 
-   autoControlPump(Number(humidity))
+  //  autoControlPump(Number(humidity))
   res.json({ success: true, entry })
 })
 
