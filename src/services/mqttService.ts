@@ -31,14 +31,20 @@ export const setupMQTT = () => {
   try {
     // Phân biệt topic để push đúng route
     if (topic === `${USERNAME}/feeds/soil-humidity`) {
-      await fetch('http://localhost:3000/api/landSensor', {
+      const res = await fetch('http://localhost:3000/api/landSensor', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ humidity: value })
       })
+
+      //temp lines for debugging
+      const json = await res.json()
+      console.log('Response từ landSensor:', res.status, json)
+
       console.log(`Đã push soil humidity ${value}%`)
 
-    } else if (topic === `${USERNAME}/feeds/temperature`) {
+    }
+     else if (topic === `${USERNAME}/feeds/temperature`) {
       await fetch('http://localhost:3000/api/tempSensor', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
