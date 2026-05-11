@@ -9,6 +9,7 @@ function IndexPage() {
   const navigate = useNavigate()
 
   const [humidity, setHumidity] = useState<number | null>(null)
+  const [temperature, setTemperature] = useState<number|null>(null)
   const [lastUpdated, setLastUpdated] = useState<string>('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -32,9 +33,33 @@ function IndexPage() {
     }
   }
 
+  const fetchTempSensor = async () => {
+    try {
+      const res = await fetch(`${API}/tempSensor`)
+      if (!res.ok) throw new Error('Lỗi kết nối server')
+      const json = await res.json()
+
+      if (json.latest) {
+        setTemperature(json.latest.temperature)
+        setLastUpdated(json.latest.time)
+      }
+      setError(null)
+    } catch (err) {
+      setError('Không thể lấy dữ liệu cảm biến')
+    } finally {
+      setLoading(false)
+    }
+  }
+
   useEffect(() => {
     fetchLandSensor()
     const interval = setInterval(fetchLandSensor, 5000)  // refresh mỗi 5 giây
+    return () => clearInterval(interval)
+  }, [])
+
+  useEffect(() => {
+    fetchTempSensor()
+    const interval = setInterval(fetchTempSensor, 5000)  // refresh mỗi 5 giây
     return () => clearInterval(interval)
   }, [])
 
@@ -83,6 +108,40 @@ function IndexPage() {
         {/* Link sang chart */}
         <button
           onClick={() => navigate('/landhumidChart')}
+          style={btnStyle('#0f8ca0')}
+        >
+          📊 Xem biểu đồ lịch sử
+        </button>
+      </div>
+
+      <div style={cardStyle(isLow ? '#fff3cd' : '#f0f9fa')}>
+        <h3>Nhiệt độ </h3>
+
+        {loading && <p>Đang tải...</p>}
+        {error && <p style={{ color: 'red' }}>⚠️ {error}</p>}
+
+        {!loading && !error && (
+          <>
+            <p style={{ fontSize: '2.5rem', fontWeight: 'bold', color: isLow ? '#d9534f' : '#0f8ca0' }}>
+              {temperature !== null ? `${temperature}°C` : '—'}
+            </p>
+
+            {/* Cảnh báo
+            {isLow && (
+              <div style={alertStyle}>
+                ⚠️ Độ ẩm đất quá thấp! Cần tưới nước ngay.
+              </div>
+            )} */}
+
+            <p style={{ fontSize: '0.85rem', color: '#888' }}>
+              Cập nhật lúc: {lastUpdated || '—'}
+            </p>
+          </>
+        )}
+
+        {/* Link sang chart */}
+        <button
+          onClick={() => navigate('/tempChart')}
           style={btnStyle('#0f8ca0')}
         >
           📊 Xem biểu đồ lịch sử
