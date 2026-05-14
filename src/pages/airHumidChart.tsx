@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react'
-import { Line } from 'react-chartjs-2'
+import { useEffect, useState } from 'react'
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend, Filler } from 'chart.js'
+import { Line } from 'react-chartjs-2'
 import './chart.css'
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend, Filler)
@@ -19,7 +19,7 @@ function AirHumidChart() {
       setData(json.history || [])
       setError(null)
     } catch (err) {
-      setError('Không thể lấy dữ liệu')
+      setError('Không thể lấy dữ liệu độ ẩm không khí')
     } finally {
       setLoading(false)
     }
@@ -31,46 +31,48 @@ function AirHumidChart() {
     return () => clearInterval(interval)
   }, [])
 
-  if (loading) return <div>Loading...</div>
-  if (error) return <div>Error: {error}</div>
-
   const chartData = {
     labels: data.map(item => item.time),
     datasets: [
       {
-        label: 'Air Humidity (%)',
+        label: 'Độ ẩm không khí (%)',
         data: data.map(item => item.humidity),
-        borderColor: '#4299e1',
-        backgroundColor: 'rgba(66, 153, 225, 0.1)',
-        borderWidth: 2.5,
+        borderColor: '#49a5f1',
+        backgroundColor: 'rgba(73, 165, 241, 0.12)',
+        pointBackgroundColor: '#49a5f1',
+        borderWidth: 3,
         fill: true,
-        tension: 0.4,
-        pointRadius: 5,
-        pointBackgroundColor: '#4299e1',
-        pointBorderColor: '#fff',
-        pointBorderWidth: 2
+        tension: 0.45,
+        cubicInterpolationMode: 'monotone' as const,
+        pointRadius: 4,
+        pointHoverRadius: 7
       }
     ]
   }
 
   const options = {
-    responsive: true, maintainAspectRatio: true,
-    plugins: { legend: { display: true } },
-    scales: { y: { grid: { drawBorder: false } }, x: { grid: { drawBorder: false } } }
-  } as any
+    responsive: true,
+    maintainAspectRatio: true,
+    interaction: { mode: 'index' as const, intersect: false },
+    plugins: {
+      legend: { labels: { color: '#42526b', font: { family: 'Inter', weight: '700' as const } } },
+      tooltip: { backgroundColor: 'rgba(20, 30, 48, 0.92)', padding: 12 }
+    },
+    scales: {
+      x: { grid: { display: false }, ticks: { color: '#64748b' } },
+      y: { min: 0, max: 100, grid: { color: 'rgba(148, 163, 184, 0.2)' }, ticks: { color: '#64748b' } }
+    }
+  }
 
   return (
-    <>
-    <div className='button_back'>
-        <button className="btn btn-secondary" onClick={() => window.history.back()} style={{ marginTop: '20px', padding: '10px 16px', color: '#fff', backgroundColor: '#4f6278', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Back</button>
-    </div>
     <div className="chart-container">
       <div className="chart-wrapper">
-        <h3 className="chart-title">Air Humidity Monitor</h3>
-        <Line data={chartData} options={options} />
+        <button className="back-button" onClick={() => window.history.back()}>← Quay lại</button>
+        <h3 className="chart-title">🫧 Biểu đồ độ ẩm không khí</h3>
+        {loading ? <div className="loading-state">Đang tải...</div> : error ? <div className="error-state">{error}</div> : <Line data={chartData} options={options as any} />}
       </div>
     </div>
-    </>
   )
 }
+
 export default AirHumidChart

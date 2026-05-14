@@ -1,48 +1,55 @@
 import { Router } from 'express'
 import type { Request, Response } from 'express'
+import { publishData } from '../services/mqttService.ts'
 
 const router = Router()
 
-// ---- State ----
-let pump1 = false  // máy bơm 1 (P10) - tưới tự động theo độ ẩm / thủ công
-let pump2 = false  // máy bơm 2 (P13) - tưới theo giờ / thủ công
+let pump1 = false
+let pump2 = false
+let pump1Auto = true
+let pump2Auto = true
 
-type PumpMode = 'auto' | 'schedule' | 'manual'
-let mode: PumpMode = 'manual'
+const HUMIDITY_LOW = 50
+const HUMIDITY_HIGH = 80
 
-// ---- Ngưỡng độ ẩm (hoa cúc: 50% - 80%) ----
-const HUMIDITY_LOW = 50   // bật bơm khi dưới ngưỡng này
-const HUMIDITY_HIGH = 80  // tắt bơm khi đạt ngưỡng này
-
-// ---- Lịch tưới theo giờ (hoa vạn thọ) ----
-// Đổi sang phút: 7g00=420, 7g15=435, 14g00=840, 14g30=870
-const SCHEDULE = [
-  { start: 420, end: 435 },  // 7:00 - 7:15
-  { start: 840, end: 870 },  // 14:00 - 14:30
+let SCHEDULE = [
+  { start: 420, end: 435 },
+  { start: 840, end: 870 },
 ]
 
-// ---- Helper: thời gian hiện tại theo phút ----
+const toBool = (value: unknown) => value === true || value === 1 || value === '1'
+
 const getCurrentMinutes = (): number => {
   const now = new Date()
   return now.getHours() * 60 + now.getMinutes()
 }
 
-// ---- Auto mode: gọi từ landSensor khi có data mới ----
+const getPayload = () => ({
+  pump1,
+  pump2,
+  pump1Auto,
+  pump2Auto,
+  autoMode: pump1Auto && pump2Auto,
+  thresholds: { low: HUMIDITY_LOW, high: HUMIDITY_HIGH },
+  schedule: SCHEDULE,
+})
+
 export const autoControlPump = (humidity: number) => {
-  if (mode !== 'auto') return
+  if (!pump1Auto) return
 
   if (humidity < HUMIDITY_LOW && !pump1) {
     pump1 = true
-    console.log(`[AUTO] Độ ẩm ${humidity}% < ${HUMIDITY_LOW}% → Bật máy bơm 1`)
+    console.log(`[AUTO] Độ ẩm ${humidity}% < ${HUMIDITY_LOW}% → BẬT bơm 1`)
+    publishData('v10', 1)
   } else if (humidity >= HUMIDITY_HIGH && pump1) {
     pump1 = false
-    console.log(`[AUTO] Độ ẩm ${humidity}% >= ${HUMIDITY_HIGH}% → Tắt máy bơm 1`)
+    console.log(`[AUTO] Độ ẩm ${humidity}% >= ${HUMIDITY_HIGH}% → TẮT bơm 1`)
+    publishData('v10', 0)
   }
 }
 
-// ---- Schedule mode: kiểm tra mỗi phút ----
 export const scheduleControlPump = () => {
-  if (mode !== 'schedule') return
+  if (!pump2Auto) return
 
   const currentMinutes = getCurrentMinutes()
   const shouldRun = SCHEDULE.some(
@@ -51,57 +58,92 @@ export const scheduleControlPump = () => {
 
   if (shouldRun && !pump2) {
     pump2 = true
-    console.log(`[SCHEDULE] ${currentMinutes} phút → Bật máy bơm 2`)
+    console.log(`[SCHEDULE] ${currentMinutes} phút → BẬT bơm 2`)
+    publishData('v11', 1)
   } else if (!shouldRun && pump2) {
     pump2 = false
-    console.log(`[SCHEDULE] ${currentMinutes} phút → Tắt máy bơm 2`)
+    console.log(`[SCHEDULE] ${currentMinutes} phút → TẮT bơm 2`)
+    publishData('v11', 0)
   }
 }
 
-// Chạy schedule check mỗi 60 giây (như tài liệu)
 setInterval(scheduleControlPump, 60 * 1000)
 
-// ---- Routes ----
-
-// GET — lấy trạng thái hiện tại
-router.get('/pumper', (req: Request, res: Response) => {
-  res.json({
-    mode,
-    pump1,
-    pump2,
-    thresholds: { low: HUMIDITY_LOW, high: HUMIDITY_HIGH },
-    schedule: SCHEDULE
-  })
+router.get('/pumper', (_req: Request, res: Response) => {
+  res.json(getPayload())
 })
 
-// POST /pumper/mode — đổi chế độ tưới
-router.post('/pumper/mode', (req: Request, res: Response) => {
-  const { newMode } = req.body
-  if (!['auto', 'schedule', 'manual'].includes(newMode)) {
-    return res.status(400).json({ error: 'Mode phải là auto | schedule | manual' })
-  }
-  mode = newMode
-  console.log(`[MODE] Chuyển sang chế độ: ${mode}`)
-  res.json({ success: true, mode })
-})
-
-// POST /pumper/manual — điều khiển thủ công (V10, V11)
 router.post('/pumper/manual', (req: Request, res: Response) => {
-  if (mode !== 'manual') {
-    return res.status(403).json({ error: `Đang ở chế độ ${mode}, không thể điều khiển thủ công` })
-  }
-
   const { pump, state } = req.body
+
   if (pump === undefined || state === undefined) {
     return res.status(400).json({ error: 'Thiếu pump (1|2) hoặc state (true|false)' })
   }
 
-  if (pump === 1) pump1 = Boolean(state)
-  else if (pump === 2) pump2 = Boolean(state)
-  else return res.status(400).json({ error: 'pump phải là 1 hoặc 2' })
+  const nextState = Boolean(state)
 
-  console.log(`[MANUAL] Máy bơm ${pump} → ${state ? 'BẬT' : 'TẮT'}`)
-  res.json({ success: true, pump1, pump2 })
+  if (pump === 1) {
+    pump1 = nextState
+    pump1Auto = false
+    publishData('v10', pump1 ? 1 : 0)
+  } else if (pump === 2) {
+    pump2 = nextState
+    pump2Auto = false
+    publishData('v11', pump2 ? 1 : 0)
+  } else {
+    return res.status(400).json({ error: 'pump phải là 1 hoặc 2' })
+  }
+
+  console.log(`[MANUAL] Bơm ${pump} → ${nextState ? 'BẬT' : 'TẮT'}`)
+  res.json({ success: true, ...getPayload() })
+})
+
+router.post('/pumper/auto', (req: Request, res: Response) => {
+  const { state } = req.body
+
+  if (state === undefined) {
+    return res.status(400).json({ error: 'Thiếu state (true|false)' })
+  }
+
+  const autoState = Boolean(state)
+  pump1Auto = autoState
+  pump2Auto = autoState
+
+  publishData('v12', autoState ? 1 : 0)
+
+  console.log(`[AUTO MODE] ${autoState ? 'BẬT' : 'TẮT'} tự động cho cả 2 bơm`)
+  res.json({ success: true, ...getPayload() })
+})
+
+router.post('/pumper/schedule', (req: Request, res: Response) => {
+  const { newSchedule } = req.body
+
+  if (!Array.isArray(newSchedule) || !newSchedule.every(s => typeof s.start === 'number' && typeof s.end === 'number')) {
+    return res.status(400).json({ error: 'Lịch tưới không hợp lệ' })
+  }
+
+  SCHEDULE = newSchedule
+  scheduleControlPump()
+  res.json({ success: true, ...getPayload() })
+})
+
+router.post('/pumper/mqtt-state', (req: Request, res: Response) => {
+  const { feedKey, state } = req.body
+  const incomingState = toBool(state)
+
+  if (feedKey === 'v10') {
+    pump1 = incomingState
+  } else if (feedKey === 'v11') {
+    pump2 = incomingState
+  } else if (feedKey === 'v12') {
+    pump1Auto = incomingState
+    pump2Auto = incomingState
+  } else {
+    return res.status(400).json({ error: 'feedKey phải là v10, v11 hoặc v12' })
+  }
+
+  console.log(`[MQTT → PUMPER] ${feedKey} = ${incomingState ? '1/BẬT' : '0/TẮT'}`)
+  res.json({ success: true, ...getPayload() })
 })
 
 export default router

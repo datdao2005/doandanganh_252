@@ -2,37 +2,54 @@ import { Router } from 'express'
 import type { Request, Response } from 'express'
 
 const router = Router()
-let currentColor = '#000000' // OFF mặc định
+
+let currentColor = '#000000'
+let mode: 'auto' | 'manual' = 'auto'
 
 router.get('/rgbLight', (req: Request, res: Response) => {
-  res.json({ color: currentColor })
+  res.json({ color: currentColor, mode })
 })
 
-// ---- Hàm tự động điều khiển đèn theo nhiệt độ ----
 export const autoControlLightByTemp = (temp: number) => {
-  let newColor = currentColor
+  if (mode !== 'auto') return
+
+  let newColor = '#000000'
 
   if (temp >= 35) {
-    newColor = '#e53e3e' // Đỏ (Cảnh báo nóng)
-  } else if (temp >= 20 && temp < 35) {
-    newColor = '#38a169' // Xanh lá (Lý tưởng / Thu hoạch)
-  } else {
-    newColor = '#000000' // Tắt đèn (Dưới 20 độ)
+    newColor = '#e53e3e'
+  } else if (temp >= 20) {
+    newColor = '#38a169'
   }
 
   if (newColor !== currentColor) {
     currentColor = newColor
-    console.log(`[RGB LIGHT AUTO] Nhiệt độ đo được: ${temp}°C -> Đổi màu đèn tự động sang: ${currentColor}`)
+    console.log(`[RGB AUTO] Nhiệt độ ${temp}°C → ${currentColor}`)
   }
 }
 
-// ---- Điều khiển thủ công qua Web ----
 router.post('/rgbLight/color', (req: Request, res: Response) => {
   const { color } = req.body
-  if (color !== undefined) {
-    currentColor = color
-    console.log(`[RGB LIGHT] Đổi màu đèn sang: ${currentColor}`)
+
+  if (typeof color !== 'string') {
+    return res.status(400).json({ error: 'Missing color value' })
   }
-  res.json({ success: true, color: currentColor })
+
+  currentColor = color
+  mode = 'manual'
+  console.log(`[RGB MANUAL] Đổi màu đèn sang: ${currentColor}`)
+
+  res.json({ success: true, color: currentColor, mode })
 })
+
+router.post('/rgbLight/mode', (req: Request, res: Response) => {
+  const { newMode } = req.body
+
+  if (!['auto', 'manual'].includes(newMode)) {
+    return res.status(400).json({ error: 'Mode phải là auto hoặc manual' })
+  }
+
+  mode = newMode
+  res.json({ success: true, color: currentColor, mode })
+})
+
 export default router

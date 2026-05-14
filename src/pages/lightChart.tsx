@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react'
-import { Line } from 'react-chartjs-2'
+import { useEffect, useState } from 'react'
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend, Filler } from 'chart.js'
+import { Line } from 'react-chartjs-2'
 import './chart.css'
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend, Filler)
@@ -19,7 +19,7 @@ function LightChart() {
       setData(json.history || [])
       setError(null)
     } catch (err) {
-      setError('Không thể lấy dữ liệu')
+      setError('Không thể lấy dữ liệu ánh sáng')
     } finally {
       setLoading(false)
     }
@@ -31,46 +31,48 @@ function LightChart() {
     return () => clearInterval(interval)
   }, [])
 
-  if (loading) return <div>Loading...</div>
-  if (error) return <div>Error: {error}</div>
-
   const chartData = {
     labels: data.map(item => item.time),
     datasets: [
       {
-        label: 'Light (lux)',
+        label: 'Ánh sáng (Lux)',
         data: data.map(item => item.light),
-        borderColor: '#d69e2e',
-        backgroundColor: 'rgba(214, 158, 46, 0.1)',
-        borderWidth: 2.5,
+        borderColor: '#e3a21a',
+        backgroundColor: 'rgba(227, 162, 26, 0.12)',
+        pointBackgroundColor: '#e3a21a',
+        borderWidth: 3,
         fill: true,
-        tension: 0.4,
-        pointRadius: 5,
-        pointBackgroundColor: '#d69e2e',
-        pointBorderColor: '#fff',
-        pointBorderWidth: 2
+        tension: 0.45,
+        cubicInterpolationMode: 'monotone' as const,
+        pointRadius: 4,
+        pointHoverRadius: 7
       }
     ]
   }
 
   const options = {
-    responsive: true, maintainAspectRatio: true,
-    plugins: { legend: { display: true } },
-    scales: { y: { grid: { drawBorder: false } }, x: { grid: { drawBorder: false } } }
-  } as any
+    responsive: true,
+    maintainAspectRatio: true,
+    interaction: { mode: 'index' as const, intersect: false },
+    plugins: {
+      legend: { labels: { color: '#42526b', font: { family: 'Inter', weight: '700' as const } } },
+      tooltip: { backgroundColor: 'rgba(20, 30, 48, 0.92)', padding: 12 }
+    },
+    scales: {
+      x: { grid: { display: false }, ticks: { color: '#64748b' } },
+      y: { grid: { color: 'rgba(148, 163, 184, 0.2)' }, ticks: { color: '#64748b' } }
+    }
+  }
 
   return (
-    <>
-    <div className='button_back'>
-        <button className="btn btn-secondary" onClick={() => window.history.back()} style={{ marginTop: '20px', padding: '10px 16px', color: '#fff', backgroundColor: '#4f6278', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Back</button>
-    </div>
     <div className="chart-container">
       <div className="chart-wrapper">
-        <h3 className="chart-title">Light Intensity Monitor</h3>
-        <Line data={chartData} options={options} />
+        <button className="back-button" onClick={() => window.history.back()}>← Quay lại</button>
+        <h3 className="chart-title">☀️ Biểu đồ cường độ ánh sáng</h3>
+        {loading ? <div className="loading-state">Đang tải...</div> : error ? <div className="error-state">{error}</div> : <Line data={chartData} options={options as any} />}
       </div>
     </div>
-    </>
   )
 }
+
 export default LightChart

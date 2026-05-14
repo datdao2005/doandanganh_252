@@ -1,9 +1,15 @@
-import express from "express";
-import { getHumidity, getTemperature } from "../controllers/sensor.ts";
+import express from 'express'
 
-const router = express.Router();
+const router = express.Router()
 
-router.get("/humidity", getHumidity);
-router.get("/temperature", getTemperature);
+// Route cũ để tránh crash nếu frontend cũ còn gọi.
+// Dữ liệu chính hiện nằm ở: /api/tempSensor, /api/airHumidSensor, /api/landSensor, /api/lightSensor.
+router.get('/humidity', (req, res) => {
+  res.json({ message: 'Use /api/airHumidSensor or /api/landSensor instead.' })
+})
 
-export default router;
+router.get('/temperature', (req, res) => {
+  res.json({ message: 'Use /api/tempSensor instead.' })
+})
+
+export default router

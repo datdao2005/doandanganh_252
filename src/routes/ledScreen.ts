@@ -1,60 +1,70 @@
 import { Router } from 'express'
 import type { Request, Response } from 'express'
-import { getCurrentTime} from '../utils/time.ts'
+
 const router = Router()
 
-// ---- State LCD hiện tại ----
 interface LCDState {
-  line1: string  // dòng 1: nhiệt độ & độ ẩm không khí
-  line2: string  // dòng 2: độ ẩm đất
+  line1: string
+  line2: string
   updatedAt: string
 }
 
+let lastTemp: number | null = null
+let lastAirHumidity: number | null = null
+let lastSoilHumidity: number | null = null
+
 let lcdState: LCDState = {
-  line1: 'Temp: --  Hum: --',
+  line1: 'T:--C H:--%',
   line2: 'Soil: --%',
   updatedAt: ''
 }
 
-// ---- Helper: format nội dung LCD (tối đa 16 ký tự/dòng) ----
-const formatLine1 = (temp: number, airHumidity: number): string => {
-  // LCD 16x2: "T:25C  H:60%    " (16 ký tự)
-  return `T:${temp}C  H:${airHumidity}%`.padEnd(16).slice(0, 16)
+const getTime = () =>
+  new Date().toLocaleTimeString('vi-VN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false
+  })
+
+const formatNumber = (value: number | null, digits = 1) => {
+  if (value === null || Number.isNaN(value)) return '--'
+  return Number.isInteger(value) ? String(value) : value.toFixed(digits)
 }
 
-const formatLine2 = (soilHumidity: number): string => {
-  // "Soil: 75%       " (16 ký tự)
-  return `Soil: ${soilHumidity}%`.padEnd(16).slice(0, 16)
-}
+const fitLCD = (text: string) => text.padEnd(16).slice(0, 16)
 
-// ---- Hàm này được gọi từ các route khác khi có data mới ----
-export const updateLCDFromSensors = (data: {
-  temp?: number
-  airHumidity?: number
-  soilHumidity?: number
-}) => {
-  const current = lcdState
-
-  // Giữ lại giá trị cũ nếu không có data mới
-  const tempMatch = current.line1.match(/T:(\d+)C/)
-  const airMatch = current.line1.match(/H:(\d+)%/)
-  const soilMatch = current.line2.match(/Soil: (\d+)%/)
-
-  const temp = data.temp ?? (tempMatch ? Number(tempMatch[1]) : 0)
-  const airHumidity = data.airHumidity ?? (airMatch ? Number(airMatch[1]) : 0)
-  const soilHumidity = data.soilHumidity ?? (soilMatch ? Number(soilMatch[1]) : 0)
-
+const rebuildLCD = () => {
   lcdState = {
-    line1: formatLine1(temp, airHumidity),
-    line2: formatLine2(soilHumidity),
-    updatedAt: getCurrentTime()
+    line1: fitLCD(`T:${formatNumber(lastTemp)}C H:${formatNumber(lastAirHumidity, 0)}%`),
+    line2: fitLCD(`Soil:${formatNumber(lastSoilHumidity, 0)}%`),
+    updatedAt: getTime()
   }
 
   console.log(`[LCD] Dòng 1: "${lcdState.line1}"`)
   console.log(`[LCD] Dòng 2: "${lcdState.line2}"`)
 }
 
-// ---- GET — frontend lấy trạng thái LCD để preview ----
+export const updateLCDFromSensors = (data: {
+  temp?: number
+  airHumidity?: number
+  soilHumidity?: number
+}) => {
+  if (typeof data.temp === 'number' && !Number.isNaN(data.temp)) {
+    lastTemp = data.temp
+  }
+
+  if (typeof data.airHumidity === 'number' && !Number.isNaN(data.airHumidity)) {
+    lastAirHumidity = data.airHumidity
+  }
+
+  if (typeof data.soilHumidity === 'number' && !Number.isNaN(data.soilHumidity)) {
+    lastSoilHumidity = data.soilHumidity
+  }
+
+  rebuildLCD()
+}
+
 router.get('/ledScreen', (req: Request, res: Response) => {
   res.json(lcdState)
 })

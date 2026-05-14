@@ -1,5 +1,4 @@
-import React, { useEffect, useState } from 'react'
-import { Line } from 'react-chartjs-2'
+import { useEffect, useState } from 'react'
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -7,11 +6,13 @@ import {
   PointElement,
   LineElement,
   Tooltip,
-  Legend
+  Legend,
+  Filler
 } from 'chart.js'
+import { Line } from 'react-chartjs-2'
 import './chart.css'
 
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend)
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Legend, Filler)
 
 function TempChart() {
   const API = 'http://localhost:3000/api'
@@ -27,7 +28,7 @@ function TempChart() {
       setData(json.history || [])
       setError(null)
     } catch (err) {
-      setError('Không thể lấy dữ liệu cảm biến')
+      setError('Không thể lấy dữ liệu nhiệt độ')
     } finally {
       setLoading(false)
     }
@@ -35,28 +36,24 @@ function TempChart() {
 
   useEffect(() => {
     fetchData()
-    const interval = setInterval(fetchData, 5000)  // refresh mỗi 5 giây
+    const interval = setInterval(fetchData, 5000)
     return () => clearInterval(interval)
   }, [])
-
-  if (loading) return <div>Loading...</div>
-  if (error) return <div>Error: {error}</div>
 
   const chartData = {
     labels: data.map(item => item.time),
     datasets: [
       {
-        label: 'Temperature (°C)',
+        label: 'Nhiệt độ (°C)',
         data: data.map(item => item.temperature),
-        borderColor: '#ff8b3d',
-        backgroundColor: 'rgba(255, 139, 61, 0.1)',
-        borderWidth: 2.5,
+        borderColor: '#ea6f20',
+        backgroundColor: 'rgba(234, 111, 32, 0.12)',
+        pointBackgroundColor: '#ea6f20',
+        borderWidth: 3,
         fill: true,
-        tension: 0.4,
-        pointRadius: 5,
-        pointBackgroundColor: '#ff8b3d',
-        pointBorderColor: '#fff',
-        pointBorderWidth: 2,
+        tension: 0.45,
+        cubicInterpolationMode: 'monotone' as const,
+        pointRadius: 4,
         pointHoverRadius: 7
       }
     ]
@@ -65,89 +62,25 @@ function TempChart() {
   const options = {
     responsive: true,
     maintainAspectRatio: true,
+    interaction: { mode: 'index' as const, intersect: false },
     plugins: {
-      legend: {
-        display: true,
-        labels: {
-          color: '#112641',
-          font: {
-            size: 14,
-            family: "'Space Grotesk', sans-serif",
-            weight: '600'
-          },
-          padding: 15
-        }
-      },
-      tooltip: {
-        backgroundColor: 'rgba(17, 38, 65, 0.9)',
-        titleColor: '#fff',
-        bodyColor: '#fff',
-        borderColor: 'rgba(255, 139, 61, 0.5)',
-        borderWidth: 1,
-        padding: 12,
-        titleFont: {
-          size: 14,
-          weight: 'bold' as const
-        },
-        bodyFont: {
-          size: 13
-        }
-      }
+      legend: { labels: { color: '#42526b', font: { family: 'Inter', weight: '700' as const } } },
+      tooltip: { backgroundColor: 'rgba(20, 30, 48, 0.92)', padding: 12 }
     },
     scales: {
-      y: {
-        ticks: {
-          color: '#4f6278',
-          font: {
-            size: 12
-          }
-        },
-        grid: {
-          color: 'rgba(255, 139, 61, 0.1)',
-          drawBorder: false
-        }
-      },
-      x: {
-        ticks: {
-          color: '#4f6278',
-          font: {
-            size: 12
-          }
-        },
-        grid: {
-          color: 'rgba(255, 139, 61, 0.1)',
-          drawBorder: false
-        }
-      }
+      x: { grid: { display: false }, ticks: { color: '#64748b' } },
+      y: { grid: { color: 'rgba(148, 163, 184, 0.2)' }, ticks: { color: '#64748b' } }
     }
-  } as any
+  }
 
   return (
-    <>
-    <div className='button_back'>
-        <button className="btn btn-secondary" onClick={() => window.history.back() }
-        style={{
-            marginTop: '20px',
-            padding: '10px 16px',
-            fontSize: '14px',
-            borderRadius: '4px',
-            color: '#fff',
-            backgroundColor: '#4f6278',
-            border: 'none',
-            cursor: 'pointer',
-            }
-        }
-            >
-        Back
-        </button>
-    </div>
     <div className="chart-container">
       <div className="chart-wrapper">
-        <h3 className="chart-title">Temperature Monitor</h3>
-        <Line data={chartData} options={options} />
+        <button className="back-button" onClick={() => window.history.back()}>← Quay lại</button>
+        <h3 className="chart-title">🌡️ Biểu đồ nhiệt độ</h3>
+        {loading ? <div className="loading-state">Đang tải...</div> : error ? <div className="error-state">{error}</div> : <Line data={chartData} options={options as any} />}
       </div>
     </div>
-    </>
   )
 }
 
